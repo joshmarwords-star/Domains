@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domain Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F6F2; --surface: #FFFFFF; --surface2: #F0EEE8;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
+    --text: #1A1916; --text2: #6B6960; --text3: #9E9C94;
+    --accent: #2D6A4F; --accent-l: #E8F4EE;
+    --blue: #1A56A4; --blue-l: #EBF3FF;
+    --gold: #B7791F; --gold-l: #FEF3C7;
+    --danger: #C0392B; --danger-l: #FDECEA;
+    --warn: #92400E; --warn-l: #FEF3C7;
+    --r: 12px; --rs: 8px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; letter-spacing: -0.3px; }
+  .logo-dot { width: 32px; height: 32px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+  .hdr-r { display: flex; align-items: center; gap: 10px; }
+  .cred-pill { display: none; align-items: center; gap: 7px; font-size: 13px; color: var(--text2); background: var(--surface2); border-radius: 20px; padding: 5px 12px; }
+  .cred-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+  .btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 9px 18px; border-radius: var(--rs); border: none; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #154289; }
+  .btn-primary:disabled { background: var(--text3); cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+  .btn-outline:hover { background: var(--surface2); color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+  .btn-full { width: 100%; }
+
+  .page { max-width: 860px; margin: 0 auto; padding: 2rem; }
+  #auth-screen { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); }
+  #main-screen { display: none; }
+
+  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 2.5rem; width: 100%; max-width: 420px; }
+  .auth-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.3px; }
+  .auth-sub { font-size: 14px; color: var(--text2); margin-bottom: 1.75rem; }
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  input { font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--rs); background: var(--bg); color: var(--text); outline: none; transition: border-color .15s, box-shadow .15s; width: 100%; }
+  input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,164,0.12); background: var(--surface); }
+  input::placeholder { color: var(--text3); }
+
+  .error-banner { background: var(--danger-l); border: 1px solid rgba(192,57,43,0.2); color: var(--danger); border-radius: var(--rs); padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; display: none; }
+
+  /* SEARCH BAR */
+  .search-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 10px; align-items: flex-end; }
+  .search-bar .field { flex: 1; }
+  .search-bar input { font-family: 'DM Mono', monospace; font-size: 15px; }
+
+  /* HISTORY */
+  .history-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .hist-chip { font-size: 12px; font-family: 'DM Mono', monospace; background: var(--surface2); color: var(--text2); padding: 3px 10px; border-radius: 20px; cursor: pointer; border: 1px solid var(--border); transition: all .1s; }
+  .hist-chip:hover { background: var(--blue-l); color: var(--blue); border-color: rgba(26,86,164,0.2); }
+
+  /* RESULT CARD */
+  .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+  .result-header { padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .domain-title { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+  .badge-ok { background: var(--accent-l); color: var(--accent); }
+  .badge-warn { background: var(--warn-l); color: var(--warn); }
+  .badge-danger { background: var(--danger-l); color: var(--danger); }
+  .badge-blue { background: var(--blue-l); color: var(--blue); }
+  .badge-gray { background: var(--surface2); color: var(--text2); }
+
+  /* EXPIRY METER */
+  .expiry-block { text-align: right; flex-shrink: 0; }
+  .expiry-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin-bottom: 4px; }
+  .expiry-days { font-size: 28px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
+  .expiry-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .days-ok { color: var(--accent); }
+  .days-warn { color: var(--warn); }
+  .days-danger { color: var(--danger); }
+
+  /* SECTIONS */
+  .sections { display: grid; grid-template-columns: 1fr 1fr; }
+  .section { padding: 1.25rem 1.5rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .section:nth-child(2n) { border-right: none; }
+  .section:nth-last-child(-n+2) { border-bottom: none; }
+  .section-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3); margin-bottom: 10px; }
+  .kv-list { display: flex; flex-direction: column; gap: 7px; }
+  .kv { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; font-size: 13px; }
+  .kv-key { color: var(--text2); flex-shrink: 0; }
+  .kv-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); text-align: right; word-break: break-all; }
+
+  /* TECH STACK */
+  .tech-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tech-chip { font-size: 12px; background: var(--blue-l); color: var(--blue); padding: 3px 10px; border-radius: 6px; font-family: 'DM Mono', monospace; }
+
+  /* NAMESERVERS */
+  .ns-list { display: flex; flex-direction: column; gap: 4px; }
+  .ns-item { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text2); }
+
+  /* FULL WIDTH SECTION */
+  .section-full { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); grid-column: 1 / -1; }
+  .section-full:last-child { border-bottom: none; }
+
+  /* LOADER */
+  .loader { display: none; text-align: center; padding: 4rem; color: var(--text2); font-size: 14px; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { text-align: center; padding: 4rem 2rem; color: var(--text2); }
+  .empty-ico { font-size: 44px; margin-bottom: 12px; }
+  .empty h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+  @media(max-width: 600px) {
+    .page { padding: 1rem; }
+    .sections { grid-template-columns: 1fr; }
+    .section { border-right: none; }
+    .result-header { flex-direction: column; }
+    .expiry-block { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot">🌐</div>Domain Lookup</div>
+  <div class="hdr-r">
+    <div class="cred-pill" id="cred-pill"><div class="cred-dot"></div><span id="cred-label"></span></div>
+    <button class="btn btn-outline btn-sm" id="logout-btn" style="display:none" onclick="logout()">Sign out</button>
+  </div>
+</header>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="page" style="width:100%">
+    <div class="auth-card">
+      <h2>Connect DataForSEO</h2>
+      <p class="auth-sub">Use your <strong>API credentials</strong> from <a href="https://app.dataforseo.com/api-access" target="_blank" style="color:var(--blue)">app.dataforseo.com/api-access</a></p>
+      <div id="auth-err" class="error-banner"></div>
+      <div class="field" style="margin-bottom:12px"><label>Email / Login</label><input type="email" id="auth-email" placeholder="you@example.com" /></div>
+      <div class="field" style="margin-bottom:1.5rem"><label>Password</label><input type="password" id="auth-pw" placeholder="••••••••••" /></div>
+      <button class="btn btn-primary btn-full" onclick="authenticate()" id="auth-btn">Connect</button>
+      <hr class="div">
+      <p style="font-size:12px;color:var(--text3);text-align:center">No account? <a href="https://app.dataforseo.com/register" target="_blank" style="color:var(--blue)">Sign up free →</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen">
+  <div class="page">
+
+    <div class="search-bar">
+      <div class="field">
+        <label>Domain name</label>
+        <input type="text" id="s-domain" placeholder="example.com" onkeydown="if(event.key==='Enter')lookup()" />
+      </div>
+      <button class="btn btn-primary" id="lookup-btn" onclick="lookup()">Look up</button>
+    </div>
+
+    <div id="history-wrap" style="display:none; margin-bottom:1.5rem;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;">Recent lookups</div>
+      <div class="history-row" id="history-row"></div>
+    </div>
+
+    <div id="search-err" class="error-banner"></div>
+    <div class="loader" id="loader"><div class="spinner"></div>Looking up domain…</div>
+    <div id="result-area"></div>
+
+  </div>
+</div>
+
+<script>
+let apiLogin='', apiPass='', history=[];
+
+function b64(s){return btoa(unescape(encodeURIComponent(s)))}
+
+async function authenticate(){
+  const em=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-pw').value.trim();
+  const err=document.getElementById('auth-err');
+  err.style.display='none';
+  if(!em||!pw){showErr(err,'Please enter both fields.');return;}
+  setBtn('auth-btn',true,'Connecting…');
+  try{
+    const resp=await fetch('https://api.dataforseo.com/v3/domain_analytics/whois/overview/live',{
+      method:'POST',
+      headers:{'Authorization':'Basic '+b64(em+':'+pw),'Content-Type':'application/json'},
+      body:JSON.stringify([{limit:1}])
+    });
+    if(resp.status===401||resp.status===403){showErrHTML(err,'Wrong credentials — get them from <a href="https://app.dataforseo.com/api-access" target="_blank" style="color:var(--danger);text-decoration:underline">app.dataforseo.com/api-access</a>');setBtn('auth-btn',false,'Connect');return;}
+    const r=await resp.json();
+    if(r.tasks){
+      apiLogin=em; apiPass=pw;
+      document.getElementById('auth-screen').style.display='none';
+      document.getElementById('main-screen').style.display='block';
+      document.getElementById('cred-pill').style.display='flex';
+      document.getElementById('cred-label').textContent=em;
+      document.getElementById('logout-btn').style.display='flex';
+      document.getElementById('s-domain').focus();
+    } else {
+      showErrHTML(err,'Could not connect — check credentials at <a href="https://app.dataforseo.com/api-access" target="_blank" style="color:var(--danger);text-decoration:underline">app.dataforseo.com/api-access</a>');
+    }
+  }catch(e){showErr(err,'Connection error: '+e.message);}
+  setBtn('auth-btn',false,'Connect');
+}
+
+async function lookup(prefill){
+  const raw=(prefill||document.getElementById('s-domain').value).trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*/,'');
+  const err=document.getElementById('search-err');
+  err.style.display='none';
+  if(!raw){showErr(err,'Please enter a domain name.');return;}
+
+  if(prefill) document.getElementById('s-domain').value=raw;
+
+  setBtn('lookup-btn',true,'Looking up…');
+  document.getElementById('loader').style.display='block';
+  document.getElementById('result-area').innerHTML='';
+
+  try{
+    const resp=await fetch('https://api.dataforseo.com/v3/domain_analytics/whois/overview/live',{
+      method:'POST',
+      headers:{'Authorization':'Basic '+b64(apiLogin+':'+apiPass),'Content-Type':'application/json'},
+      body:JSON.stringify([{filters:[['domain','=',raw]],limit:1}])
+    });
+    const data=await resp.json();
+    const task=data.tasks?.[0];
+    if(!task||task.status_code!==20000) throw new Error(task?.status_message||'API error');
+    const items=task.result?.[0]?.items;
+    if(!items||!items.length){
+      document.getElementById('result-area').innerHTML=`<div class="empty"><div class="empty-ico">🔍</div><h3>No data found for ${esc(raw)}</h3><p>This domain may not be in the DataForSEO database yet.</p></div>`;
+    } else {
+      renderResult(items[0]);
+      addHistory(raw);
+    }
+  }catch(e){showErr(err,'Lookup failed: '+e.message);}
+
+  document.getElementById('loader').style.display='none';
+  setBtn('lookup-btn',false,'Look up');
+}
+
+function renderResult(d){
+  const expiry=d.expiration_datetime ? new Date(d.expiration_datetime) : null;
+  const created=d.creation_datetime ? new Date(d.creation_datetime) : null;
+  const updated=d.updated_datetime ? new Date(d.updated_datetime) : null;
+  const now=new Date();
+  const daysLeft=expiry ? Math.round((expiry-now)/(1000*60*60*24)) : null;
+
+  const expiryClass=daysLeft===null?'days-ok':daysLeft<30?'days-danger':daysLeft<90?'days-warn':'days-ok';
+  const badgeExpiry=daysLeft===null?'':daysLeft<30?'badge-danger':daysLeft<90?'badge-warn':'badge-ok';
+  const expiryText=daysLeft===null?'Unknown':daysLeft<0?'Expired':daysLeft+' days';
+
+  const tech=d.technologies||{};
+  const allTech=[].concat(...Object.values(tech)).filter(Boolean);
+
+  const ns=(d.nameservers||[]);
+  const registrar=d.registrar||'—';
+  const registrant=d.registrant_data;
+
+  const statusBadges=(d.status_list||[d.status]).filter(Boolean).map(s=>{
+    const lower=(s||'').toLowerCase();
+    const cls=lower.includes('clienthold')||lower.includes('redemption')?'badge-danger':lower.includes('transfer')?'badge-warn':'badge-blue';
+    return `<span class="badge ${cls}">${esc(s)}</span>`;
+  }).join('');
+
+  document.getElementById('result-area').innerHTML=`
+    <div class="result-card">
+      <div class="result-header">
+        <div>
+          <div class="domain-title">${esc(d.domain||'')}</div>
+          <div class="badges">
+            ${d.is_ip?'<span class="badge badge-gray">IP</span>':''}
+            ${statusBadges||'<span class="badge badge-ok">Active</span>'}
+          </div>
+        </div>
+        ${expiry?`
+        <div class="expiry-block">
+          <div class="expiry-label">Expires in</div>
+          <div class="expiry-days ${expiryClass}">${expiryText}</div>
+          <div class="expiry-sub">${expiry.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+        </div>`:''}
+      </div>
+
+      <div class="sections" style="display:grid">
+
+        <div class="section">
+          <div class="section-title">Registration</div>
+          <div class="kv-list">
+            <div class="kv"><span class="kv-key">Registrar</span><span class="kv-val">${esc(registrar)}</span></div>
+            <div class="kv"><span class="kv-key">Created</span><span class="kv-val">${created?created.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span></div>
+            <div class="kv"><span class="kv-key">Updated</span><span class="kv-val">${updated?updated.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span></div>
+            <div class="kv"><span class="kv-key">Expires</span><span class="kv-val">${expiry?expiry.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'}</span></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Registrant</div>
+          <div class="kv-list">
+            ${registrant?.name?`<div class="kv"><span class="kv-key">Name</span><span class="kv-val">${esc(registrant.name)}</span></div>`:''}
+            ${registrant?.organization?`<div class="kv"><span class="kv-key">Org</span><span class="kv-val">${esc(registrant.organization)}</span></div>`:''}
+            ${registrant?.country?`<div class="kv"><span class="kv-key">Country</span><span class="kv-val">${esc(registrant.country)}</span></div>`:''}
+            ${registrant?.email?`<div class="kv"><span class="kv-key">Email</span><span class="kv-val">${esc(registrant.email)}</span></div>`:''}
+            ${!registrant?.name&&!registrant?.organization&&!registrant?.country?'<div style="font-size:13px;color:var(--text3)">Privacy protected</div>':''}
+          </div>
+        </div>
+
+        ${ns.length?`
+        <div class="section">
+          <div class="section-title">Nameservers</div>
+          <div class="ns-list">${ns.map(n=>`<div class="ns-item">${esc(n)}</div>`).join('')}</div>
+        </div>`:''}
+
+        ${d.ips?.length?`
+        <div class="section">
+          <div class="section-title">IP Addresses</div>
+          <div class="ns-list">${d.ips.map(ip=>`<div class="ns-item">${esc(ip)}</div>`).join('')}</div>
+        </div>`:''}
+
+        ${allTech.length?`
+        <div class="section section-full" style="border-bottom: ${d.backlinks_info?'1px solid var(--border)':'none'}">
+          <div class="section-title">Technology stack</div>
+          <div class="tech-grid">${allTech.map(t=>`<span class="tech-chip">${esc(t)}</span>`).join('')}</div>
+        </div>`:''}
+
+        ${d.backlinks_info?`
+        <div class="section section-full" style="border-bottom:none">
+          <div class="section-title">Backlink overview</div>
+          <div class="kv-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+            ${d.backlinks_info.referring_domains!=null?`<div class="kv"><span class="kv-key">Referring domains</span><span class="kv-val">${Number(d.backlinks_info.referring_domains).toLocaleString()}</span></div>`:''}
+            ${d.backlinks_info.backlinks!=null?`<div class="kv"><span class="kv-key">Backlinks</span><span class="kv-val">${Number(d.backlinks_info.backlinks).toLocaleString()}</span></div>`:''}
+            ${d.backlinks_info.rank!=null?`<div class="kv"><span class="kv-key">Domain rank</span><span class="kv-val">${d.backlinks_info.rank}</span></div>`:''}
+          </div>
+        </div>`:''}
+
+      </div>
+    </div>
+  `;
+}
+
+function addHistory(domain){
+  history=history.filter(h=>h!==domain);
+  history.unshift(domain);
+  if(history.length>8) history=history.slice(0,8);
+  renderHistory();
+}
+
+function renderHistory(){
+  if(!history.length){document.getElementById('history-wrap').style.display='none';return;}
+  document.getElementById('history-wrap').style.display='block';
+  document.getElementById('history-row').innerHTML=history.map(h=>`<span class="hist-chip" onclick="lookup('${esc(h)}')">${esc(h)}</span>`).join('');
+}
+
+function logout(){
+  apiLogin=''; apiPass=''; history=[];
+  document.getElementById('main-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('cred-pill').style.display='none';
+  document.getElementById('logout-btn').style.display='none';
+  document.getElementById('auth-email').value='';
+  document.getElementById('auth-pw').value='';
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('history-wrap').style.display='none';
+}
+
+function showErr(el,msg){el.textContent=msg;el.style.display='block';}
+function showErrHTML(el,msg){el.innerHTML=msg;el.style.display='block';}
+function setBtn(id,dis,txt){const b=document.getElementById(id);b.disabled=dis;b.textContent=txt;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('auth-screen').style.display!=='none')authenticate();});
+</script>
+</body>
+</html>
